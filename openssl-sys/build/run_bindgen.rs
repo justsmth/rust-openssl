@@ -1,4 +1,6 @@
 #[cfg(feature = "bindgen")]
+use bindgen::callbacks::ItemInfo;
+#[cfg(feature = "bindgen")]
 use bindgen::callbacks::{MacroParsingBehavior, ParseCallbacks};
 #[cfg(feature = "bindgen")]
 use bindgen::{MacroTypeVariation, RustTarget};
@@ -80,7 +82,7 @@ pub fn run(include_dirs: &[PathBuf]) {
 
     let mut builder = bindgen::builder()
         .parse_callbacks(Box::new(OpensslCallbacks))
-        .rust_target(RustTarget::Stable_1_47)
+        .rust_target(RustTarget::stable(71, 0).unwrap())
         .ctypes_prefix("::libc")
         .raw_line("use libc::*;")
         .raw_line("#[cfg(windows)] use std::os::windows::raw::HANDLE;")
@@ -134,7 +136,7 @@ pub fn run_boringssl(include_dirs: &[PathBuf]) {
         .expect("Failed to write contents to boring_static_wrapper.h");
 
     let mut builder = bindgen::builder()
-        .rust_target(RustTarget::Stable_1_47)
+        .rust_target(RustTarget::stable(71, 0).unwrap())
         .ctypes_prefix("::libc")
         .raw_line("use libc::*;")
         .derive_default(false)
@@ -257,7 +259,7 @@ pub fn run_awslc(include_dirs: &[PathBuf], symbol_prefix: Option<String>) {
         .expect("Failed to write contents to awslc_static_wrapper.h");
 
     let mut builder = bindgen::builder()
-        .rust_target(RustTarget::Stable_1_47)
+        .rust_target(RustTarget::stable(71, 0).unwrap())
         .ctypes_prefix("::libc")
         .raw_line("use libc::*;")
         .derive_default(false)
@@ -354,8 +356,8 @@ impl ParseCallbacks for OpensslCallbacks {
         MacroParsingBehavior::Ignore
     }
 
-    fn item_name(&self, original_item_name: &str) -> Option<String> {
-        match original_item_name {
+    fn item_name(&self, item_info: ItemInfo) -> Option<String> {
+        match item_info.name {
             // Our original definitions of these are wrong, so rename to avoid breakage
             "CRYPTO_EX_new"
             | "CRYPTO_EX_dup"
@@ -373,7 +375,7 @@ impl ParseCallbacks for OpensslCallbacks {
             | "SSL_CTX_set_tmp_ecdh_callback"
             | "SSL_set_tmp_ecdh_callback"
             | "SSL_CTX_callback_ctrl"
-            | "SSL_CTX_set_alpn_select_cb" => Some(format!("{}__fixed_rust", original_item_name)),
+            | "SSL_CTX_set_alpn_select_cb" => Some(format!("{}__fixed_rust", item_info.name)),
             _ => None,
         }
     }
